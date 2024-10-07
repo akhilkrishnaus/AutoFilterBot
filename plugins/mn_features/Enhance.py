@@ -1,28 +1,28 @@
 from pyrogram import Client, filters
-from pyrogram.types import Message
-import requests
-from HorridAPI.core import Core
-from io import BytesIO
+from Mangandi import ImageUploader
+import requests 
 
-@Client.on_message(filters.command(["improve"]))
-async def enhance_photo(client: Client, message: Message):   
-    if not message.reply_to_message or not message.reply_to_message.photo:
-        await message.reply("Please reply to a photo to enhance it.")
+api_key = "horridapi_vWPjevmyVpTUSkx0OsmpIg_free_key"
+
+num = 8
+
+@Client.on_message(filters.command(["upscale", "improve"]))
+async def upscale(bot, m):
+    if not m.reply_to_message.photo:
+        await m.reply_text("<b>Rᴇᴘʟʏ ᴛᴏ ᴀ ᴘʜᴏᴛᴏ ᴛᴏ ᴜꜱᴇ ᴛʜɪꜱ ᴄᴏᴍᴍᴀɴᴅ!</b>")
         return
+ 
+    if m.reply_to_message.photo:
+        s = await m.reply_text("<b>Dᴏᴡɴʟᴏᴅɪɴɢ...</b>")
+        download = await m.reply_to_message.download()
+        await s.edit("<b>Uᴘʟᴏᴀᴅɪɴɢ...</b>")
+        media = ImageUploader(download)
+        photo = media.upload()       
+        response = requests.get(f"https://horridapi2-0.onrender.com/upscale?api_key={api_key}&url={photo}&scale={num}")
+        data = response.json()
+        
+        if not data["STATUS"] == "OK":
+            await s.edit(f"<b>Aɴ Oᴄᴄᴜʀᴇᴅ Eʀʀᴏʀ: <code>{data['error']}</code></b>")
 
-    replied = message.reply_to_message    
-    media = await replied.download()
-    gfile = Core.upload(media)    
-    mes = await message.reply_text("`Uploading...`")
-    response = requests.get(gfile)
-    image_data = BytesIO(response.content)
-
-    # api url
-    api = requests.post("https://horridapi2-0.onrender.com/enhance", files={"image": image_data})
-
-    bio = BytesIO(api.content)
-
-    bio.seek(0)
-    
-    await message.reply_document(document=bio, file_name="photo.png", caption="**Successfully Uploaded**")
-    await mes.delete()
+        if data["STATUS"] == "OK":
+            await bot.send_document(chat_id=m.chat.id, document=data["data"][0]["URL"], caption="<b>Sᴜᴄᴄᴇꜱꜱғᴜʟʟʏ Uᴘꜱᴄᴀʟᴇᴅ</b>")
